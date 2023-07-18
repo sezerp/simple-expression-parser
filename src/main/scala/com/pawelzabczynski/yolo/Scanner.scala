@@ -65,13 +65,13 @@ class Scanner(source: String) {
 
             loop(current + 1, line, nextAcc)
           case Grammar.Slash =>
-            val nextAcc = if (matchNext(current, Grammar.Slash)) {
-              skipUntilEndLine(current, line)
-              acc
+            if (matchNext(current, Grammar.Slash)) {
+              val result = skipUntilEndLine(current, line)
+              loop(result.current, line, acc)
             } else {
-              Token(TokenType.Slash, line) :: acc
+              val nextAcc = Token(TokenType.Slash, line) :: acc
+              loop(current + 1, line, nextAcc)
             }
-            loop(current + 1, line, nextAcc)
           case Grammar.WhiteSpace     => loop(current + 1, line, acc)
           case Grammar.NextLine       => loop(current + 1, line + 1, acc)
           case Grammar.CarriageReturn => loop(current + 1, line + 1, acc)
@@ -154,8 +154,10 @@ class Scanner(source: String) {
     def loop(cl: Int): Result = {
       val token = next(cl)
       token match {
-        case Grammar.NextLine => Result(cl + 1, line + 1, null)
-        case _                => loop(cl + 1)
+        case Grammar.NextLine =>
+          Result(cl + 1, line + 1, null)
+        case _                =>
+          loop(cl + 1)
       }
     }
 

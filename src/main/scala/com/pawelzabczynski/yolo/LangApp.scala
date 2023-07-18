@@ -9,6 +9,7 @@ object LangApp {
   def main(args: Array[String]): Unit = {
     val src =
       """
+        |// some comment
         |var x = 100
         |if(x > 10) {
         | print x
