@@ -4,7 +4,7 @@ import com.pawelzabczynski.grammar.tokenizer.TokenizerError.InvalidTokenError
 
 import scala.annotation.tailrec
 
-object Tokenizer {
+object Lexer {
   private val NL: Char          = '\n'
   private val OP: Char          = '('
   private val CP: Char          = ')'
@@ -67,7 +67,7 @@ object Tokenizer {
 
   private val ALLOWED_TOKENS: Set[Char] = CHARACTERS ++ NUMBERS ++ OPERATORS ++ SPECIAL_CHARACTERS
 
-  def tokenize(expression: String): Either[TokenizerError, List[Lexeme]] = {
+  def lex(expression: String): Either[TokenizerError, List[Lexeme]] = {
     def isEnd(numberTokens: Int): Int => Boolean = { position =>
       numberTokens <= position
     }
