@@ -10,19 +10,21 @@ object LangApp {
     val src =
       """
         |// some comment
-        |var x = 100
-        |if(x > 10) {
+        |var x = .2
+        |var y = "some string"
+        |if(x >= 10 and y == "some string") {
         | print x
         | }
         |""".stripMargin
     run(src)
-//    if (args.length > 1) {
-//      System.exit(64)
-//    } else if (args.length == 1) {
-//      runScript(args(0))
-//    } else {
-//      runPrompt()
-//    }
+
+    val expression = Binary(
+      Unary(Token(TokenType.Minus, Some("-"), None, 1), Literal(NumericVal(123))),
+      Token(TokenType.Star, Some("*"), None, 1),
+      Grouping(Literal(NumericVal(45.67)))
+    )
+
+    println(AstPrinter.print(expression))
   }
 
   private def runScript(path: String): Unit = {

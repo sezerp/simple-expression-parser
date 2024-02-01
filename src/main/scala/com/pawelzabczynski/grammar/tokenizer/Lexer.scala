@@ -8,6 +8,8 @@ object Lexer {
   private val NL: Char          = '\n'
   private val OP: Char          = '('
   private val CP: Char          = ')'
+  private val CB: Char          = '}'
+  private val OB: Char          = '{'
   private val WHITE_SPACE: Char = ' '
   private val COLON: Char       = ':'
   private val TAB: Char         = '\t'
@@ -62,7 +64,7 @@ object Lexer {
   private val CHARACTERS: Set[Char] = Set(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z)
   private val NUMBERS: Set[Char]    = Set(ZERO, ONE, TWO, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE)
   private val OPERATORS: Set[Char]  = Set(PLUS, MINUS, DIVIDE, MUL, POWER, GREATER, EQUAL, SMALLER)
-  private val SPECIAL_CHARACTERS: Set[Char] = Set(NL, OP, CP, WHITE_SPACE, COLON, TAB)
+  private val SPECIAL_CHARACTERS: Set[Char] = Set(NL, OP, CP, WHITE_SPACE, COLON, TAB, CB, OB)
   private val TERMINATION_TOKENS: Set[Char] = Set(WHITE_SPACE, COLON, TAB, OP, NL, CP)
 
   private val ALLOWED_TOKENS: Set[Char] = CHARACTERS ++ NUMBERS ++ OPERATORS ++ SPECIAL_CHARACTERS
@@ -101,7 +103,7 @@ object Lexer {
       }
     }
 
-    loop(0, 1, 1, List.empty)
+    loop(0, 1, 1, List.empty).map(_.reverse)
   }
 
   private def collectLexeme(

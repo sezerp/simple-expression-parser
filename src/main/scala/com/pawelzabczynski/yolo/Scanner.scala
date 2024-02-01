@@ -6,7 +6,7 @@ class Scanner(source: String) {
   def lex(): List[Token] = {
     def loop(current: Int, line: Int, acc: List[Token]): List[Token] = {
       if (isEnd(current)) {
-        acc
+        Token(TokenType.Eof, line) :: acc
       } else {
         val token = next(current)
         token match {
@@ -25,7 +25,7 @@ class Scanner(source: String) {
           case Grammar.Comma =>
             val nextAcc = Token(TokenType.Coma, line) :: acc
             loop(current + 1, line, nextAcc)
-          case Grammar.Dot =>
+          case Grammar.Dot if !Grammar.isDigit(peekNext(current)) =>
             val nextAcc = Token(TokenType.Dot, line) :: acc
             loop(current + 1, line, nextAcc)
           case Grammar.Minus =>
@@ -42,28 +42,42 @@ class Scanner(source: String) {
             loop(current + 1, line, nextAcc)
           // two character tokens
           case Grammar.Bang =>
-            val nextAcc =
-              if (matchNext(current, Grammar.Equal)) Token(TokenType.BangEqual, line) :: acc
-              else Token(TokenType.Bang, line) :: acc
-
-            loop(current + 1, line, nextAcc)
+              if (matchNext(current, Grammar.Equal)) {
+                val nextAcc = Token(TokenType.BangEqual, line) :: acc
+                loop(current + 2, line, nextAcc)
+              }
+              else {
+                val nextAcc = Token(TokenType.Bang, line) :: acc
+                loop(current + 1, line, nextAcc)
+              }
           case Grammar.Equal =>
-            val nextAcc =
-              if (matchNext(current, Grammar.Equal)) Token(TokenType.EqualEqual, line) :: acc
-              else Token(TokenType.Equal, line) :: acc
-
-            loop(current + 1, line, nextAcc)
+              if (matchNext(current, Grammar.Equal)) {
+                val nextAcc = Token(TokenType.EqualEqual, line) :: acc
+                loop(current + 2, line, nextAcc)
+              }
+              else {
+                val nextAcc = Token(TokenType.Equal, line) :: acc
+                loop(current + 1, line, nextAcc)
+              }
           case Grammar.Less =>
-            val nextAcc =
-              if (matchNext(current, Grammar.Equal)) Token(TokenType.LessEqual, line) :: acc
-              else Token(TokenType.Less, line) :: acc
-            loop(current + 1, line, nextAcc)
-          case Grammar.Greater =>
-            val nextAcc =
-              if (matchNext(current, Grammar.Equal)) Token(TokenType.GreaterEqual, line) :: acc
-              else Token(TokenType.Greater, line) :: acc
 
-            loop(current + 1, line, nextAcc)
+              if (matchNext(current, Grammar.Equal)) {
+                val nextAcc = Token(TokenType.LessEqual, line) :: acc
+                loop(current + 2, line, nextAcc)
+              }
+              else {
+                val nextAcc = Token(TokenType.Less, line) :: acc
+                loop(current + 1, line, nextAcc)
+              }
+          case Grammar.Greater =>
+              if (matchNext(current, Grammar.Equal)) {
+                val nextAcc = Token(TokenType.GreaterEqual, line) :: acc
+                loop(current + 2, line, nextAcc)
+              }
+              else {
+                val nextAcc = Token(TokenType.Greater, line) :: acc
+                loop(current + 1, line, nextAcc)
+              }
           case Grammar.Slash =>
             if (matchNext(current, Grammar.Slash)) {
               val result = skipUntilEndLine(current, line)
@@ -78,21 +92,21 @@ class Scanner(source: String) {
           case Grammar.Tab            => loop(current + 1, line, acc)
           case Grammar.Quote =>
             val result  = string(current + 1, line)
-            val nextAcc = Token(TokenType.String, Some(s"\"${result.token}\""), Some(result.token), result.line) :: acc
+            val nextAcc = Token(TokenType.String, Some(s"\"${result.token}\""), Some(StringVal(result.token)), result.line) :: acc
             loop(result.current + 1, line, nextAcc)
-          case c if Grammar.isDigit(c) =>
+          case c if Grammar.isDigit(c) || (notMachNext(current, Grammar.Dot) && Grammar.isDigit(peekNext(current))) =>
             val result = number(current, line)
             val nextAcc = Token(
               TokenType.Number,
               Some(result.token),
-              Some(java.lang.Double.parseDouble(result.token)),
+              Some(NumericVal(java.lang.Double.parseDouble(result.token))),
               result.line
             ) :: acc
             loop(result.current + 1, line, nextAcc)
           case c if Grammar.isAlpha(c) =>
             val result    = identifier(current, line)
             val tokenType = Grammar.Keywords.get(result.token).fold[TokenType](TokenType.Identifier)(identity)
-            val nextAcc   = Token(tokenType, Some(result.token), Some(result.token), result.line) :: acc
+            val nextAcc   = Token(tokenType, Some(result.token), Some(StringVal(result.token)), result.line) :: acc
             loop(result.current, line, nextAcc)
           case c =>
             Errors.error(line, s"Unexpected character: $c")
@@ -117,7 +131,7 @@ class Scanner(source: String) {
 
   private def number(current: Int, line: Int): Result = {
     def loop(cur: Int, acc: StringBuilder): Result = {
-      if (nonEnd(cur) && Grammar.isDigit(peek(cur))) {
+      if (nonEnd(cur) && (Grammar.isDigit(peek(cur)) || peek(cur) == Grammar.Dot)) {
         val c = next(cur)
         loop(cur + 1, acc.append(c))
       } else if (nonEnd(cur) && peek(cur) == Grammar.Dot) {
@@ -131,14 +145,14 @@ class Scanner(source: String) {
 
   private def string(current: Int, line: Int): Result = {
     def loop(cur: Int, l: Int, acc: StringBuilder): Result = {
-      if (nonEnd(cur) && peek(current) != Grammar.Quote) {
+      if (nonEnd(cur) && peek(cur) != Grammar.Quote) {
         val c = next(cur)
         if (c == Grammar.NextLine) {
           loop(cur + 1, l + 1, acc.append(c))
         } else {
           loop(cur + 1, l, acc.append(c))
         }
-      } else Result(cur + 1, line, acc.toString())
+      } else Result(cur, line, acc.toString())
     }
 
     val result    = loop(current, line, new StringBuilder)
@@ -190,7 +204,9 @@ class Scanner(source: String) {
     else peekNext(current) == expected
   }
 
-//  def handleComments(current: Int)
+  private def notMachNext(current: Int, expected: Char): Boolean = {
+    !matchNext(current, expected)
+  }
 }
 
 object Scanner {
